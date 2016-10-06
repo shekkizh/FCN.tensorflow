@@ -7,6 +7,8 @@ The implementation is largely based on the reference code provided by the author
 2. [Observations](#observations)
 3. [Useful links](#useful-links)
 
+Readme is still under edit :exclamation:
+
 ##Results
 Results were obtained by training the model in batches of 2 with resized image of 256x256. Note that although the training is done at this image size - Nothing prevents the model from working on arbitrary sized images. No post processing was done on the predicted images. Training was done for 9 epochs - The shorter training time explains why certain concepts seem semantically understood by the model while others were not. Results below are from randomly chosen images from validation dataset.
 

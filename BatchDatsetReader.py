@@ -47,7 +47,7 @@ class BatchDatset:
         if self.image_options.get("resize", False) and self.image_options["resize"]:
             resize_size = int(self.image_options["resize_size"])
             resize_image = misc.imresize(image,
-                                         [resize_size, resize_size])
+                                         [resize_size, resize_size], interp='nearest')
         else:
             resize_image = image
 

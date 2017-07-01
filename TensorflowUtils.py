@@ -59,7 +59,7 @@ def save_image(image, save_dir, name, mean=None):
 
 def get_variable(weights, name):
     init = tf.constant_initializer(weights, dtype=tf.float32)
-    var = tf.get_variable(name=name, initializer=init,  shape=weights.shape)
+    var = tf.get_variable(name=name, initializer=init,  shape=weights.shape,trainable = False) #Layer of VGG are not involved into optimization process
     return var
 
 

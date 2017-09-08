@@ -152,7 +152,7 @@ def main(argv=None):
     loss = tf.reduce_mean((tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits,
                                                                           labels=tf.squeeze(annotation, squeeze_dims=[3]),
                                                                           name="entropy")))
-    tf.summary.scalar("entropy", loss)
+    loss_summary = tf.summary.scalar("entropy", loss)
 
     trainable_var = tf.trainable_variables()
     if FLAGS.debug:
@@ -178,7 +178,11 @@ def main(argv=None):
 
     print("Setting up Saver...")
     saver = tf.train.Saver()
-    summary_writer = tf.summary.FileWriter(FLAGS.logs_dir, sess.graph)
+
+    # create two summary writers to show training loss and validation loss in the same graph
+    # need to create two folders 'train' and 'validation' inside FLAGS.logs_dir
+    train_writer = tf.summary.FileWriter(FLAGS.logs_dir + '/train', sess.graph)
+    validation_writer = tf.summary.FileWriter(FLAGS.logs_dir + '/validation')
 
     sess.run(tf.global_variables_initializer())
     ckpt = tf.train.get_checkpoint_state(FLAGS.logs_dir)
@@ -194,15 +198,18 @@ def main(argv=None):
             sess.run(train_op, feed_dict=feed_dict)
 
             if itr % 10 == 0:
-                train_loss, summary_str = sess.run([loss, summary_op], feed_dict=feed_dict)
+                train_loss, summary_str = sess.run([loss, loss_summary], feed_dict=feed_dict)
                 print("Step: %d, Train_loss:%g" % (itr, train_loss))
-                summary_writer.add_summary(summary_str, itr)
+                train_writer.add_summary(summary_str, itr)
 
             if itr % 500 == 0:
                 valid_images, valid_annotations = validation_dataset_reader.next_batch(FLAGS.batch_size)
-                valid_loss = sess.run(loss, feed_dict={image: valid_images, annotation: valid_annotations,
+                valid_loss, summary_sva = sess.run([loss, loss_summary], feed_dict={image: valid_images, annotation: valid_annotations,
                                                        keep_probability: 1.0})
                 print("%s ---> Validation_loss: %g" % (datetime.datetime.now(), valid_loss))
+
+                # add validation loss to TensorBoard
+                validation_writer.add_summary(summary_sva, itr)
                 saver.save(sess, FLAGS.logs_dir + "model.ckpt", itr)
 
     elif FLAGS.mode == "visualize":

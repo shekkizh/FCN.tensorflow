@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 
 import TensorflowUtils as utils
-import read_MITSceneParsingData as scene_parsing
+import read_in_data as scene_parsing
 import datetime
 import BatchDatsetReader as dataset
 from six.moves import xrange

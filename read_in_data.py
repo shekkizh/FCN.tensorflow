@@ -13,7 +13,7 @@ import TensorflowUtils as utils
 
 
 def read_dataset(data_dir):
-    pickle_filename = "MITSceneParsing.pickle"
+    pickle_filename = "dataset.pickle"
     pickle_filepath = os.path.join(data_dir, pickle_filename)
     if not os.path.exists(pickle_filepath):
         result = create_image_lists("images")

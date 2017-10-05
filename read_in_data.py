@@ -16,7 +16,7 @@ def read_dataset(data_dir):
     pickle_filename = "dataset.pickle"
     pickle_filepath = os.path.join(data_dir, pickle_filename)
     if not os.path.exists(pickle_filepath):
-        result = create_image_lists("images")
+        result = create_image_lists(data_dir)
         print ("Pickling ...")
         with open(pickle_filepath, 'wb') as f:
             pickle.dump(result, f, pickle.HIGHEST_PROTOCOL)

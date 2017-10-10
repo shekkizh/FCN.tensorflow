@@ -228,12 +228,19 @@ def main(argv=None):
 
     elif FLAGS.mode == "predict":
         predict_records = scene_parsing.read_prediction_set(FLAGS.data_dir)
+        print ("No. of predict records {}").format(predict_records)
         predict_image_options = {'resize': False, 'resize_size': IMAGE_SIZE, 'predict_dataset': True}
         test_dataset_reader = dataset.BatchDatset(predict_records, predict_image_options)
-        for i in range(len(predict_records)):
+        no_predict_images = len(predict_records)
+        print test_dataset_reader.files
+        print("Predicting {} images").format(no_predict_images)
+        for i in range(no_predict_images):
+            if (i % 10 == 0):
+                print("Predicted {}/{} images").format(i, no_predict_images)
             predict_images = test_dataset_reader.next_batch(1)
             pred = sess.run(pred_annotation, feed_dict={image: predict_images,
                                                         keep_probability: 1.0})
+            print test_dataset_reader.files[i]
             utils.save_image(pred[0].astype(np.uint8), os.path.join(FLAGS.logs_dir, "predictions"),
                              name="predict_" + test_dataset_reader.files[i])
 

@@ -233,6 +233,9 @@ def main(argv=None):
         predict_image_options = {'resize': True, 'resize_size': IMAGE_SIZE, 'predict_dataset': True}
         test_dataset_reader = dataset.BatchDatset(predict_records, predict_image_options)
         print("Predicting {} images".format(no_predict_images))
+
+        if not os.path.exists(os.path.join(FLAGS.logs_dir, "predictions")):
+            os.makedirs(os.path.join(FLAGS.logs_dir, "predictions"))
         for i in range(no_predict_images):
             if (i % 10 == 0):
                 print("Predicted {}/{} images".format(i, no_predict_images))

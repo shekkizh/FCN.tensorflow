@@ -229,10 +229,9 @@ def main(argv=None):
     elif FLAGS.mode == "predict":
         predict_records = scene_parsing.read_prediction_set(FLAGS.data_dir)
         print ("No. of predict records {}".format(predict_records))
-        predict_image_options = {'resize': False, 'resize_size': IMAGE_SIZE, 'predict_dataset': True}
+        predict_image_options = {'resize': True, 'resize_size': IMAGE_SIZE, 'predict_dataset': True}
         test_dataset_reader = dataset.BatchDatset(predict_records, predict_image_options)
         no_predict_images = len(predict_records)
-        print(test_dataset_reader.files)
         print("Predicting {} images".format(no_predict_images))
         for i in range(no_predict_images):
             if (i % 10 == 0):

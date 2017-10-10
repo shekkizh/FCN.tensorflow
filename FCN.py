@@ -1,6 +1,7 @@
 from __future__ import print_function
 import tensorflow as tf
 import numpy as np
+import os
 
 import TensorflowUtils as utils
 import read_in_data as scene_parsing
@@ -15,12 +16,12 @@ tf.flags.DEFINE_string("data_dir", "Data_zoo/dataset/", "path to dataset")
 tf.flags.DEFINE_float("learning_rate", "1e-4", "Learning rate for Adam Optimizer")
 tf.flags.DEFINE_string("model_dir", "Model_zoo/", "Path to vgg model mat")
 tf.flags.DEFINE_bool('debug', "False", "Debug mode: True/ False")
-tf.flags.DEFINE_string('mode', "train", "Mode train/ test/ visualize")
+tf.flags.DEFINE_string('mode', "train", "Mode train/ test/ visualize/ predict") #test not implemented
 
 MODEL_URL = 'http://www.vlfeat.org/matconvnet/models/beta16/imagenet-vgg-verydeep-19.mat'
 
 MAX_ITERATION = int(1e5 + 1)
-NUM_OF_CLASSESS = 3
+NUM_OF_CLASSESS = 2
 IMAGE_SIZE = 224
 
 
@@ -224,6 +225,17 @@ def main(argv=None):
             utils.save_image(valid_annotations[itr].astype(np.uint8), FLAGS.logs_dir, name="gt_" + str(5+itr))
             utils.save_image(pred[itr].astype(np.uint8), FLAGS.logs_dir, name="pred_" + str(5+itr))
             print("Saved image: %d" % itr)
+
+    elif FLAGS.mode == "predict":
+        predict_records = scene_parsing.read_prediction_set(FLAGS.data_dir)
+        predict_image_options = {'resize': False, 'resize_size': IMAGE_SIZE, 'predict_dataset': True}
+        test_dataset_reader = dataset.BatchDatset(predict_records, predict_image_options)
+        for i in range(len(predict_records)):
+            predict_images = test_dataset_reader.next_batch(1)
+            pred = sess.run(pred_annotation, feed_dict={image: predict_images,
+                                                        keep_probability: 1.0})
+            utils.save_image(pred[0].astype(np.uint8), os.path.join(FLAGS.logs_dir, "predictions"),
+                             name="predict_" + test_dataset_reader.files[i])
 
 
 if __name__ == "__main__":

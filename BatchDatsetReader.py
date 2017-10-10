@@ -23,6 +23,7 @@ class BatchDatset:
         resize = True/ False
         resize_size = #size of output image - does bilinear resize
         color=True/False
+        predict_dataset = True/False (default False)
         """
         print("Initializing Batch Dataset Reader...")
         print(image_options)
@@ -34,10 +35,11 @@ class BatchDatset:
         self.__channels = True
         self.images = np.array([self._transform(filename['image']) for filename in self.files])
         self.__channels = False
-        self.annotations = np.array(
-            [np.expand_dims(self._transform(filename['annotation']), axis=3) for filename in self.files])
         print (self.images.shape)
-        print (self.annotations.shape)
+        if not self.image_options.get("predict_dataset", False):
+            self.annotations = np.array(
+                [np.expand_dims(self._transform(filename['annotation']), axis=3) for filename in self.files])
+            print (self.annotations.shape)
 
     def _transform(self, filename):
         image = misc.imread(filename)
@@ -54,7 +56,10 @@ class BatchDatset:
         return np.array(resize_image)
 
     def get_records(self):
-        return self.images, self.annotations
+        if not self.image_options.get("predict_dataset", False):
+            return self.images, self.annotations
+        else:
+            return self.images
 
     def reset_batch_offset(self, offset=0):
         self.batch_offset = offset
@@ -70,14 +75,23 @@ class BatchDatset:
             perm = np.arange(self.images.shape[0])
             np.random.shuffle(perm)
             self.images = self.images[perm]
-            self.annotations = self.annotations[perm]
+            if not self.image_options.get("predict_dataset", False):
+                self.annotations = self.annotations[perm]
             # Start next epoch
             start = 0
             self.batch_offset = batch_size
 
         end = self.batch_offset
-        return self.images[start:end], self.annotations[start:end]
+        if not self.image_options.get("predict_dataset", False):
+            return self.images[start:end], self.annotations[start:end]
+        else:
+            return self.images[start:end]
 
     def get_random_batch(self, batch_size):
         indexes = np.random.randint(0, self.images.shape[0], size=[batch_size]).tolist()
-        return self.images[indexes], self.annotations[indexes]
+        if not self.image_options.get("predict_dataset", False):
+            return self.images[indexes], self.annotations[indexes]
+        else:
+            return self.images[indexes]
+
+

@@ -11,6 +11,21 @@ import TensorflowUtils as utils
 # DATA_URL = 'http://sceneparsing.csail.mit.edu/data/ADEChallengeData2016.zip'
 #DATA_URL = 'http://data.csail.mit.edu/places/ADEchallenge/ADEChallengeData2016.zip'
 
+def read_prediction_set(data_dir):
+    if not gfile.Exists(data_dir):
+        print("Image directory '" + data_dir + "' not found.")
+        return None
+    file_list = []
+    image_list = []
+    file_glob = os.path.join(data_dir, '*.' + 'png')
+    file_list.extend(glob.glob(file_glob))
+
+    if not file_list:
+        print('No files found')
+    else:
+        image_list = [{'image': f, 'filename': os.path.splitext(f.split("/")[-1])[0]} for f in file_list]
+    print ('No. of files: %d' % len(image_list))
+    return image_list
 
 def read_dataset(data_dir):
     pickle_filename = "dataset.pickle"

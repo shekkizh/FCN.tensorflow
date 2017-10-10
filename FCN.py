@@ -239,9 +239,8 @@ def main(argv=None):
             predict_images = test_dataset_reader.next_batch(1)
             pred = sess.run(pred_annotation, feed_dict={image: predict_images,
                                                         keep_probability: 1.0})
-            print(test_dataset_reader.files[i])
             utils.save_image(pred[0].astype(np.uint8), os.path.join(FLAGS.logs_dir, "predictions"),
-                             name="predict_" + test_dataset_reader.files[i])
+                             name="predict_" + test_dataset_reader.files[i]['filename'])
 
 
 if __name__ == "__main__":

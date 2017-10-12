@@ -16,6 +16,7 @@ tf.flags.DEFINE_string("data_dir", "Data_zoo/dataset/", "path to dataset")
 tf.flags.DEFINE_float("learning_rate", "1e-4", "Learning rate for Adam Optimizer")
 tf.flags.DEFINE_string("model_dir", "Model_zoo/", "Path to vgg model mat")
 tf.flags.DEFINE_bool('debug', "False", "Debug mode: True/ False")
+tf.flags.DEFINE_bool('image_augmentation', "True", "Image augmentation: True/ False")
 tf.flags.DEFINE_float('dropout_keep_prob', "0.85", "Probably of keeping value in dropout (valid values (0.0,1.0]")
 tf.flags.DEFINE_string('mode', "train", "Mode train/ test/ visualize/ predict") #test not implemented
 
@@ -171,10 +172,11 @@ def main(argv=None):
     print(len(valid_records))
 
     print("Setting up dataset reader")
-    image_options = {'resize': True, 'resize_size': IMAGE_SIZE}
+    image_options_train = {'resize': True, 'resize_size': IMAGE_SIZE, 'image_augmentation':FLAGS.image_augmentation}
+    image_options_val = {'resize': True, 'resize_size': IMAGE_SIZE}
     if FLAGS.mode == 'train':
-        train_dataset_reader = dataset.BatchDatset(train_records, image_options)
-    validation_dataset_reader = dataset.BatchDatset(valid_records, image_options)
+        train_dataset_reader = dataset.BatchDatset(train_records, image_options_train)
+    validation_dataset_reader = dataset.BatchDatset(valid_records, image_options_val)
 
     sess = tf.Session()
 

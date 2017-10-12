@@ -3,11 +3,12 @@ Code ideas from https://github.com/Newmu/dcgan and tensorflow mnist dataset read
 """
 import numpy as np
 import scipy.misc as misc
-
+import tensorflow as tf
 
 class BatchDatset:
     files = []
-    images = []
+    images = np.array([])
+    image_arr = []
     annotations = []
     image_options = {}
     batch_offset = 0
@@ -23,6 +24,7 @@ class BatchDatset:
         resize = True/ False
         resize_size = #size of output image - does bilinear resize
         color=True/False
+        image_augmentation=True/False
         :param predict_dataset: boolean stating whether dataset is for predictions (does not include annotations)
             True/False (default False)
         """
@@ -34,13 +36,34 @@ class BatchDatset:
 
     def _read_images(self):
         self.__channels = True
-        self.images = np.array([self._transform(filename['image']) for filename in self.files])
+        self.image_arr = [self._transform(filename['image']) for filename in self.files]
+        if self.image_options.get("image_augmentation", False):
+            self.images = np.array([self._augment_image(image) for image in self.image_arr])
+        else:
+            self.images = np.array(self.image_arr)
         self.__channels = False
         print (self.images.shape)
         if not self.image_options.get("predict_dataset", False):
             self.annotations = np.array(
                 [np.expand_dims(self._transform(filename['annotation']), axis=3) for filename in self.files])
             print (self.annotations.shape)
+
+    def _augment_image(self, image, annotation_file=None):
+        if annotation_file:
+            combined_image_label = np.concat(image, annotation_file, axis=2)
+            combined_image_label = tf.image.random_flip_left_right(combined_image_label)
+            distorted_image = combined_image_label[:, :, :3]
+            distorted_annotation = combined_image_label[:, :, :3]
+        else:
+            distorted_image = tf.image.random_flip_left_right(image)
+        distorted_image = tf.image.random_brightness(distorted_image,
+                                                     max_delta=63)
+        distorted_image = tf.image.random_contrast(distorted_image,
+                                               lower=0.2, upper=1.8)
+        if annotation_file:
+            return distorted_image, distorted_annotation
+        else:
+            return distorted_image
 
     def _transform(self, filename):
         image = misc.imread(filename)
@@ -73,6 +96,8 @@ class BatchDatset:
             self.epochs_completed += 1
             print("****************** Epochs completed: " + str(self.epochs_completed) + "******************")
             # Shuffle the data
+            if self.image_options.get("image_augmentation", False):
+                self.images = np.array([self._augment_image(image) for image in self.image_arr])
             perm = np.arange(self.images.shape[0])
             np.random.shuffle(perm)
             self.images = self.images[perm]

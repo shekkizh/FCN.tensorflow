@@ -195,11 +195,11 @@ def main(argv=None):
         print("Model restored...")
 
     if FLAGS.mode == "train":
-        if FLAGS.keep_prob <=0 or FLAGS.keep_prob > 1:
+        if FLAGS.dropout_keep_prob <=0 or FLAGS.dropout_keep_prob > 1:
             print("")
         for itr in xrange(MAX_ITERATION):
             train_images, train_annotations = train_dataset_reader.next_batch(FLAGS.batch_size)
-            feed_dict = {image: train_images, annotation: train_annotations, keep_probability: FLAGS.keep_prob}
+            feed_dict = {image: train_images, annotation: train_annotations, keep_probability: FLAGS.dropout_keep_prob}
 
             sess.run(train_op, feed_dict=feed_dict)
 

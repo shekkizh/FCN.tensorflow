@@ -23,7 +23,8 @@ class BatchDatset:
         resize = True/ False
         resize_size = #size of output image - does bilinear resize
         color=True/False
-        predict_dataset = True/False (default False)
+        :param predict_dataset: boolean stating whether dataset is for predictions (does not include annotations)
+            True/False (default False)
         """
         print("Initializing Batch Dataset Reader...")
         print(image_options)

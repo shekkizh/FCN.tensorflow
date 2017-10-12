@@ -16,6 +16,7 @@ tf.flags.DEFINE_string("data_dir", "Data_zoo/dataset/", "path to dataset")
 tf.flags.DEFINE_float("learning_rate", "1e-4", "Learning rate for Adam Optimizer")
 tf.flags.DEFINE_string("model_dir", "Model_zoo/", "Path to vgg model mat")
 tf.flags.DEFINE_bool('debug', "False", "Debug mode: True/ False")
+tf.flags.DEFINE_float('dropout_keep_prob', "0.85", "Probably of keeping value in dropout (valid values (0.0,1.0]")
 tf.flags.DEFINE_string('mode', "train", "Mode train/ test/ visualize/ predict") #test not implemented
 
 MODEL_URL = 'http://www.vlfeat.org/matconvnet/models/beta16/imagenet-vgg-verydeep-19.mat'
@@ -192,9 +193,11 @@ def main(argv=None):
         print("Model restored...")
 
     if FLAGS.mode == "train":
+        if FLAGS.keep_prob <=0 or FLAGS.keep_prob > 1:
+            print("")
         for itr in xrange(MAX_ITERATION):
             train_images, train_annotations = train_dataset_reader.next_batch(FLAGS.batch_size)
-            feed_dict = {image: train_images, annotation: train_annotations, keep_probability: 0.85}
+            feed_dict = {image: train_images, annotation: train_annotations, keep_probability: FLAGS.keep_prob}
 
             sess.run(train_op, feed_dict=feed_dict)
 

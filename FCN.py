@@ -17,7 +17,7 @@ tf.flags.DEFINE_float("learning_rate", "1e-4", "Learning rate for Adam Optimizer
 tf.flags.DEFINE_string("model_dir", "Model_zoo/", "Path to vgg model mat")
 tf.flags.DEFINE_bool('debug', "False", "Debug mode: True/ False")
 tf.flags.DEFINE_bool('image_augmentation', "True", "Image augmentation: True/ False")
-tf.flags.DEFINE_float('dropout_keep_prob', "0.85", "Probably of keeping value in dropout (valid values (0.0,1.0]")
+tf.flags.DEFINE_float('dropout', "0.5", "Probably of keeping value in dropout (valid values (0.0,1.0]")
 tf.flags.DEFINE_string('mode', "train", "Mode train/ test/ visualize/ predict") #test not implemented
 
 MODEL_URL = 'http://www.vlfeat.org/matconvnet/models/beta16/imagenet-vgg-verydeep-19.mat'
@@ -168,8 +168,8 @@ def main(argv=None):
 
     print("Setting up image reader...")
     train_records, valid_records = scene_parsing.read_dataset(FLAGS.data_dir)
-    print(len(train_records))
-    print(len(valid_records))
+    print("No. train records: ", len(train_records))
+    print("No. validation records: ", len(valid_records))
 
     print("Setting up dataset reader")
     image_options_train = {'resize': True, 'resize_size': IMAGE_SIZE, 'image_augmentation':FLAGS.image_augmentation}
@@ -195,11 +195,11 @@ def main(argv=None):
         print("Model restored...")
 
     if FLAGS.mode == "train":
-        if FLAGS.dropout_keep_prob <=0 or FLAGS.dropout_keep_prob > 1:
-            print("")
+        if FLAGS.dropout <=0 or FLAGS.dropout > 1:
+            raise ValueError("Dropout value not in range (0,1]")
         for itr in xrange(MAX_ITERATION):
             train_images, train_annotations = train_dataset_reader.next_batch(FLAGS.batch_size)
-            feed_dict = {image: train_images, annotation: train_annotations, keep_probability: FLAGS.dropout_keep_prob}
+            feed_dict = {image: train_images, annotation: train_annotations, keep_probability: (1 - FLAGS.dropout)}
 
             sess.run(train_op, feed_dict=feed_dict)
 

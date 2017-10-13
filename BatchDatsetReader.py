@@ -79,8 +79,8 @@ class BatchDatset:
     def _augment_images(self, image_arr, annotation_arr=[]):
         if annotation_arr:
             images, annotations = \
-                zip(*self._augment_image(image, annotation)
-                    for image, annotation in zip(image_arr, annotation_arr))
+                zip(*[self._augment_image(image, annotation)
+                    for image, annotation in zip(image_arr, annotation_arr)])
             return np.array(images), np.array(annotations)
         else:
             return np.array([self._augment_image(image) for image in self.image_arr])

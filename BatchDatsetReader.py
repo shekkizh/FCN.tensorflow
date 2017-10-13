@@ -58,7 +58,7 @@ class BatchDatset:
         print ("Images shape ", self.images.shape)
 
     def _augment_image(self, image, annotation_file=None):
-        if annotation_file:
+        if annotation_file is not None:
             combined_image_label = np.concatenate(image, annotation_file, axis=2)
         else:
             combined_image_label = image

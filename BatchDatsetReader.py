@@ -64,14 +64,14 @@ class BatchDatset:
             combined_image_label = image
         combined_image_label = tf.image.random_flip_left_right(combined_image_label)
         combined_image_label = tf.image.random_flip_up_down(combined_image_label)
-        if annotation_file:
+        if annotation_file is not None:
             distorted_image = combined_image_label[:, :, :3]
             distorted_annotation = combined_image_label[:, :, :3]
         else:
             distorted_image = combined_image_label
         distorted_image = tf.image.random_brightness(distorted_image, max_delta=63)
         distorted_image = tf.image.random_contrast(distorted_image, lower=0.2, upper=1.8)
-        if annotation_file:
+        if annotation_file is not None:
             # IDE may not think so, but distorted_annotation is always created before returned
             return distorted_image, distorted_annotation
         else:

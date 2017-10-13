@@ -59,7 +59,7 @@ class BatchDatset:
 
     def _augment_image(self, image, annotation_file=None):
         if annotation_file is not None:
-            combined_image_label = np.concatenate(image, annotation_file, axis=2)
+            combined_image_label = np.concatenate((image, annotation_file), axis=2)
         else:
             combined_image_label = image
         combined_image_label = tf.image.random_flip_left_right(combined_image_label)

@@ -38,6 +38,7 @@ class BatchDatset:
 
     def _read_images(self):
         self.__channels = True
+        self.image_arr = [self._transform(filename['image']) for filename in self.files]
         if not self.image_options.get("predict_dataset", False):
             self.annotations_arr = [
                 np.expand_dims(self._transform(filename['annotation']), axis=3) for filename in self.files]

@@ -24,10 +24,10 @@ class DatasetReader:
         self.batch_size = batch_size
         self.image_options = image_options
         self.records = {}
-        self.records["image"] =  [records_list['image'] for record in records_list]
-        self.records["filename"] =  [records_list['filename'] for record in records_list]
+        self.records["image"] =  [record['image'] for record in records_list]
+        self.records["filename"] =  [record['filename'] for record in records_list]
         if self.image_options.get("image_augmentation", False):
-            self.records["annotation"] =  [records_list['annotation'] for record in records_list]
+            self.records["annotation"] =  [record['annotation'] for record in records_list]
 
         tf_records = tf.convert_to_tensor(self.records)
         tf_records_placeholder = tf.placeholder(tf_records)

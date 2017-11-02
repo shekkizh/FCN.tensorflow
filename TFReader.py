@@ -46,7 +46,7 @@ class DatasetReader:
             annotation = tf.image.decode_image(tf.read_file(annotation_filename))
         if self.image_options.get("image_augmentation", False):
             return self._augment_image(image, annotation)
-        elif self.image_options.get("predict_dataset", False):
+        elif annotation_filename is None:
             return image
         else:
             return image, annotation

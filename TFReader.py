@@ -29,7 +29,7 @@ class DatasetReader:
         if self.image_options.get("image_augmentation", False):
             self.records["annotation"] = [record['annotation'] for record in records_list]
         #tf_records_placeholder = tf.placeholder(self.records)
-        if self.records['annotation'] is not None:
+        if 'annotation' in self.records:
             self.dataset = Dataset.from_tensor_slices((self.records['image'], self.records['filename'],
                                                       self.records['annotation']))
         else:
@@ -43,7 +43,7 @@ class DatasetReader:
     def _input_parser(self, image_filename, name, annotation_filename=None):
         image = tf.image.decode_image(tf.read_file(image_filename))
         annotation = None
-        if annotation_file is not None:
+        if annotation_filename is not None:
             annotation = tf.image.decode_image(tf.read_file(annotation_filename))
         if self.image_options.get("image_augmentation", False):
             return self._augment_image(image, annotation)

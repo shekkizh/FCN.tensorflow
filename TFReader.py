@@ -109,9 +109,9 @@ class TrainVal:
         return self.iterator
 
     def get_ops(self):
-        if not self.self.training_init_op or self.validation_init_op:
+        if not self.training_init_op or self.validation_init_op:
             self._create_ops()
-        return self.self.training_init_op, self.validation_init_op
+        return self.training_init_op, self.validation_init_op
 class SingleDataset:
     def __init__(self):
         pass

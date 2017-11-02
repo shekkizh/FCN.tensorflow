@@ -24,16 +24,16 @@ class DatasetReader:
         self.batch_size = batch_size
         self.image_options = image_options
         self.records = {}
-        self.records["image"] =  tf.convert_to_tensor([record['image'] for record in records_list])
-        self.records["filename"] =  tf.convert_to_tensor([record['filename'] for record in records_list])
+        self.records["image"] =  [record['image'] for record in records_list]
+        self.records["filename"] =  [record['filename'] for record in records_list]
         if self.image_options.get("image_augmentation", False):
-            self.records["annotation"] =  tf.convert_to_tensor([record['annotation'] for record in records_list])
+            self.records["annotation"] = [record['annotation'] for record in records_list]
         #tf_records_placeholder = tf.placeholder(self.records)
         if self.records['annotation'] is not None:
-            self.dataset = Dataset.from_tensor_slices(self.records['image'], self.records['filename'],
-                                                      self.records['annotation'])
+            self.dataset = Dataset.from_tensor_slices((self.records['image'], self.records['filename'],
+                                                      self.records['annotation']))
         else:
-            self.dataset = Dataset.from_tensor_slices(self.records['image'], self.records['filename'])
+            self.dataset = Dataset.from_tensor_slices((self.records['image'], self.records['filename']))
 
         self.dataset = self.dataset.map(self._input_parser)
         self.dataset = self.dataset.batch(batch_size)

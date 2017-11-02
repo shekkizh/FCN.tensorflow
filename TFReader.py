@@ -39,20 +39,19 @@ class DatasetReader:
         self.dataset = self.dataset.batch(batch_size)
         self.dataset = self.dataset.repeat()
 
-    @staticmethod
-    def _input_parser(image_filename, name, annotation_filename=None):
+    def _input_parser(self, image_filename, name, annotation_filename=None):
         image = tf.image.decode_image(tf.read_file(image_filename))
         annotation = None
         if annotation_filename is not None:
             annotation = tf.image.decode_image(tf.read_file(annotation_filename))
         if self.image_options.get("image_augmentation", False):
-            return TFR._augment_image(image, annotation)
+            return self._augment_image(image, annotation)
         elif self.image_options.get("predict_dataset", False):
             return image
         else:
             return image, annotation
-    @staticmethod
-    def _augment_image(image, annotation_file=None):
+
+    def _augment_image(self, image, annotation_file=None):
         if annotation_file is not None:
             combined_image_label = tf.concat((image, annotation_file), axis=2)
         else:

@@ -94,14 +94,14 @@ class TrainVal:
     def _create_iterator(self):
         if not self.train:
             return
-        self.iterator = Iterator.from_structure(self.train.output_types,
-                                                self.train.output_shapes)
+        self.iterator = Iterator.from_structure(self.train.dataset.output_types,
+                                                self.train.dataset.output_shapes)
 
     def _create_ops(self):
         if not self.train or not self.validation:
             return
-        self.training_init_op = self.iterator.make_initializer(self.train)
-        self.validation_init_op = self.iterator.make_initializer(self.validation)
+        self.training_init_op = self.iterator.make_initializer(self.train.dataset)
+        self.validation_init_op = self.iterator.make_initializer(self.validation.dataset)
 
     def get_iterator(self):
         if not self.iterator:
@@ -129,9 +129,9 @@ class SingleDataset:
         return cls.from_DatasetReaders(reader)
 
     def _create_iterator(self):
-        self.iterator = Iterator.from_structure(self.dataset.output_types,
-                                                self.dataset.output_shapes)
+        self.iterator = Iterator.from_structure(self.dataset.dataset.output_types,
+                                                self.dataset.dataset.output_shapes)
     def _create_ops(self):
-        self.init_op = self.iterator.make_initializer(self.dataset)
+        self.init_op = self.iterator.make_initializer(self.dataset.dataset)
 
 

@@ -32,8 +32,10 @@ class DatasetReader:
         if 'annotation' in self.records:
             self.dataset = Dataset.from_tensor_slices((self.records['image'], self.records['filename'],
                                                       self.records['annotation']))
+            self.dataset = self.dataset.map(self._input_parser)
         else:
             self.dataset = Dataset.from_tensor_slices((self.records['image'], self.records['filename']))
+            self.dataset = self.dataset.map(lambda im_f, n: self._input_parser(im_f, n, None))
 
         self.dataset = self.dataset.map(self._input_parser)
         self.dataset = self.dataset.batch(batch_size)

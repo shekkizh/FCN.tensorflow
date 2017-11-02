@@ -174,8 +174,9 @@ def main(argv=None):
     print("Setting up dataset reader")
     image_options_train = {'resize': True, 'resize_size': IMAGE_SIZE, 'image_augmentation':FLAGS.image_augmentation}
     image_options_val = {'resize': True, 'resize_size': IMAGE_SIZE}
-    print( train_records[0])
-    print(valid_records[0])
+    tr_no_an = [record for record in train_records if "annotation" not in record]
+    val_no_an = [record for record in valid_records if "annotation" not in record]
+    print(tr_no_an, val_no_an)
     if FLAGS.mode == 'train':
         train_val_dataset = dataset.TrainVal.from_records(
             train_records, valid_records, image_options_train, image_options_val, FLAGS.batch_size, FLAGS.batch_size)

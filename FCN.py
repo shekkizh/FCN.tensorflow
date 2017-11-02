@@ -174,6 +174,8 @@ def main(argv=None):
     print("Setting up dataset reader")
     image_options_train = {'resize': True, 'resize_size': IMAGE_SIZE, 'image_augmentation':FLAGS.image_augmentation}
     image_options_val = {'resize': True, 'resize_size': IMAGE_SIZE}
+    print( train_records[0])
+    print(valid_records[0])
     if FLAGS.mode == 'train':
         train_val_dataset = dataset.TrainVal.from_records(
             train_records, valid_records, image_options_train, image_options_val, FLAGS.batch_size, FLAGS.batch_size)

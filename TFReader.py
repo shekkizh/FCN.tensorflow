@@ -29,20 +29,22 @@ class DatasetReader:
         if self.image_options.get("image_augmentation", False):
             self.records["annotation"] =  tf.convert_to_tensor([record['annotation'] for record in records_list])
         #tf_records_placeholder = tf.placeholder(self.records)
-        self.dataset = Dataset.from_tensor_slices(self.records)
-        self.dataset = self.dataset.batch(batch_size)
+        if self.records['annotation'] is not None:
+            self.dataset = Dataset.from_tensor_slices(self.records['image'], self.records['filename'],
+                                                      self.records['annotation'])
+        else:
+            self.dataset = Dataset.from_tensor_slices(self.records['image'], self.records['filename'])
+
         self.dataset = self.dataset.map(self._input_parser)
+        self.dataset = self.dataset.batch(batch_size)
         self.dataset = self.dataset.repeat()
 
 
-    def _input_parser(self, record):
-        filename = record['filename']
-        image_name = record['image']
-        annotation_file = record.get('annotation', None)
-        image = tf.image.decode_image(tf.read_file(filename))
+    def _input_parser(self, image_filename, name, annotation_filename=None):
+        image = tf.image.decode_image(tf.read_file(image_filename))
         annotation = None
         if annotation_file is not None:
-            annotation = tf.image.decode_image(tf.read_file(annotation_file))
+            annotation = tf.image.decode_image(tf.read_file(annotation_filename))
         if self.image_options.get("image_augmentation", False):
             return self._augment_image(image, annotation)
         elif self.image_options.get("predict_dataset", False):

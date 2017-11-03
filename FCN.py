@@ -128,7 +128,7 @@ def inference(image, keep_prob):
         b_t3 = utils.bias_variable([NUM_OF_CLASSESS], name="b_t3")
         conv_t3 = utils.conv2d_transpose_strided(fuse_2, W_t3, b_t3, output_shape=deconv_shape3, stride=8)
 
-        annotation_pred = tf.argmax(conv_t3, dimension=3, name="prediction")
+        annotation_pred = tf.argmax(conv_t3, axis=3, name="prediction")
 
     return tf.expand_dims(annotation_pred, dim=3), conv_t3
 
@@ -202,6 +202,31 @@ def main(argv=None):
         if FLAGS.dropout <=0 or FLAGS.dropout > 1:
             raise ValueError("Dropout value not in range (0,1]")
         sess.run(training_init_op)
+        for i in xrange(MAX_ITERATION):
+
+            train_images, train_annotations = next(get_next)
+            feed_dict = {image: train_images, annotation: train_annotations, keep_probability: (1 - FLAGS.dropout)}
+
+            sess.run(train_op, feed_dict=feed_dict)
+
+            if i % 10 == 0:
+                train_loss, summary_str = sess.run([loss, loss_summary], feed_dict=feed_dict)
+                print("Step: %d, Train_loss:%g" % (i, train_loss))
+                train_writer.add_summary(summary_str, i)
+
+            if i % 500 == 0:
+                sess.run(val_init_op)
+
+                valid_images, valid_annotations = next(get_next)
+                valid_loss, summary_sva = sess.run([loss, loss_summary], feed_dict={image: valid_images, annotation: valid_annotations,
+                                                       keep_probability: 1.0})
+                print("%s ---> Validation_loss: %g" % (datetime.datetime.now(), valid_loss))
+
+                # add validation loss to TensorBoard
+                validation_writer.add_summary(summary_sva, i)
+                saver.save(sess, FLAGS.logs_dir + "model.ckpt", i)
+                sess.run(training_init_op)
+
 
     elif FLAGS.mode == "visualize":
         iterator = train_val_dataset.get_iterator()

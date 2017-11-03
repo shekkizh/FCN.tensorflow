@@ -40,7 +40,9 @@ class DatasetReader:
         self.dataset = self.dataset.repeat()
 
     def _input_parser(self, image_filename, name, annotation_filename=None):
-        image = tf.image.decode_image(tf.read_file(image_filename))
+        #Based on https://github.com/tensorflow/tensorflow/issues/9356, decode_jpeg and decode_png both decode both formats
+        #This is a workaround because decode_image does not return a static size, which breaks resize_images
+        image = tf.image.decode_jpeg(tf.read_file(image_filename))
         if self.image_options.get("resize", False):
             image = tf.image.resize_images(image, (self.image_options["resize_size"], self.image_options["resize_size"]))
         annotation = None

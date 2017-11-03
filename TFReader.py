@@ -41,9 +41,14 @@ class DatasetReader:
 
     def _input_parser(self, image_filename, name, annotation_filename=None):
         image = tf.image.decode_image(tf.read_file(image_filename))
+        if self.image_options.get("resize", False):
+            image = tf.image.resize_images(image, (self.image_options["resize_size"], self.image_options["resize_size"]))
         annotation = None
         if annotation_filename is not None:
             annotation = tf.image.decode_image(tf.read_file(annotation_filename))
+            if self.image_options.get("resize", False):
+                annotation = tf.image.resize_images(annotation,
+                                               (self.image_options["resize_size"], self.image_options["resize_size"]))
         if self.image_options.get("image_augmentation", False):
             return self._augment_image(image, annotation)
         elif annotation_filename is None:

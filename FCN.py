@@ -204,7 +204,7 @@ def main(argv=None):
         #sess.run(training_init_op)
         for i in xrange(MAX_ITERATION):
 
-            train_images, train_annotations = sess.run(it_train)
+            train_images, train_annotations = it_train.get_next()
             feed_dict = {image: train_images, annotation: train_annotations, keep_probability: (1 - FLAGS.dropout)}
 
             sess.run(train_op, feed_dict=feed_dict)
@@ -217,7 +217,7 @@ def main(argv=None):
             if i % 500 == 0:
                 #sess.run(val_init_op)
 
-                valid_images, valid_annotations = sess.run(it_val)
+                valid_images, valid_annotations = it_val.get_next()
                 valid_loss, summary_sva = sess.run([loss, loss_summary], feed_dict={image: valid_images, annotation: valid_annotations,
                                                        keep_probability: 1.0})
                 print("%s ---> Validation_loss: %g" % (datetime.datetime.now(), valid_loss))

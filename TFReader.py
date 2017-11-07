@@ -98,27 +98,30 @@ class TrainVal:
         val_reader = DatasetReader(val_records, val_image_options, val_batch_size)
         return cls.from_DatasetReaders(train_reader, val_reader)
 
-    def _create_iterator(self):
-        if not self.train:
-            return
-        self.iterator = Iterator.from_structure(self.train.dataset.output_types,
-                                                self.train.dataset.output_shapes)
-
-    def _create_ops(self):
+    def _create_iterators(self):
         if not self.train or not self.validation:
             return
-        self.training_init_op = self.iterator.make_initializer(self.train.dataset)
-        self.validation_init_op = self.iterator.make_initializer(self.validation.dataset)
+        # self.iterator = Iterator.from_structure(self.train.dataset.output_types,
+        #                                         self.train.dataset.output_shapes)
+        self.train_iterator = self.train.dataset.make_one_shot_iterator()
+        self.validation_iterator = self.validation.dataset.make_one_shot_iterator()
+    # def _create_ops(self):
+    #     if not self.train or not self.validation:
+    #         return
+    #     # self.training_init_op = self.iterator.make_initializer(self.train.dataset)
+    #     # self.validation_init_op = self.iterator.make_initializer(self.validation.dataset)
+    #     self.training_init_op = self.train.dataset.make_initializable_iterator()
+    #     self.validation_init_op = self.validation.dataset.make_initializable_iterator()
 
-    def get_iterator(self):
-        if not self.iterator:
-            self._create_iterator()
-        return self.iterator
+    def get_iterators(self):
+        if not self.train_iterator or not self.validation_iterator:
+            self._create_iterators()
+        return self.train_iterator, self.validation_iterator
 
-    def get_ops(self):
-        if not self.training_init_op or self.validation_init_op:
-            self._create_ops()
-        return self.training_init_op, self.validation_init_op
+    # def get_ops(self):
+    #     if not self.training_init_op or self.validation_init_op:
+    #         self._create_ops()
+    #     return self.training_init_op, self.validation_init_op
 class SingleDataset:
     def __init__(self):
         pass

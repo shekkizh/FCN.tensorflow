@@ -196,15 +196,15 @@ def main(argv=None):
         print("Model restored...")
 
     if FLAGS.mode == "train":
-        iterator = train_val_dataset.get_iterator()
-        get_next = iterator.get_next()
-        training_init_op, val_init_op = train_val_dataset.get_ops()
+        it_train, it_val = train_val_dataset.get_iterators()
+        # get_next = iterator.get_next()
+        #training_init_op, val_init_op = train_val_dataset.get_ops()
         if FLAGS.dropout <=0 or FLAGS.dropout > 1:
             raise ValueError("Dropout value not in range (0,1]")
-        sess.run(training_init_op)
+        #sess.run(training_init_op)
         for i in xrange(MAX_ITERATION):
 
-            train_images, train_annotations = sess.run(get_next)
+            train_images, train_annotations = sess.run(it_train)
             feed_dict = {image: train_images, annotation: train_annotations, keep_probability: (1 - FLAGS.dropout)}
 
             sess.run(train_op, feed_dict=feed_dict)
@@ -215,9 +215,9 @@ def main(argv=None):
                 train_writer.add_summary(summary_str, i)
 
             if i % 500 == 0:
-                sess.run(val_init_op)
+                #sess.run(val_init_op)
 
-                valid_images, valid_annotations = sess.run(get_next)
+                valid_images, valid_annotations = sess.run(it_val)
                 valid_loss, summary_sva = sess.run([loss, loss_summary], feed_dict={image: valid_images, annotation: valid_annotations,
                                                        keep_probability: 1.0})
                 print("%s ---> Validation_loss: %g" % (datetime.datetime.now(), valid_loss))
@@ -225,7 +225,7 @@ def main(argv=None):
                 # add validation loss to TensorBoard
                 validation_writer.add_summary(summary_sva, i)
                 saver.save(sess, FLAGS.logs_dir + "model.ckpt", i)
-                sess.run(training_init_op)
+                #sess.run(training_init_op)
 
 
     elif FLAGS.mode == "visualize":

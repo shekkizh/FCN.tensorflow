@@ -145,7 +145,7 @@ def train(loss_val, var_list):
 
 def main(argv=None):
     keep_probability = tf.placeholder(tf.float32, name="keep_probabilty")
-
+    trainable_var = tf.trainable_variables()
     print("Setting up summary op...")
     summary_op = tf.summary.merge_all()
 
@@ -199,7 +199,7 @@ def main(argv=None):
                                                                                   name="entropy")))
             loss_summary = tf.summary.scalar("entropy", loss)
 
-            trainable_var = tf.trainable_variables()
+
             if FLAGS.debug:
                 for var in trainable_var:
                     utils.add_to_regularization_and_summary(var)

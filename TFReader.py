@@ -26,8 +26,9 @@ class DatasetReader:
         self.records = {}
         self.records["image"] =  [record['image'] for record in records_list]
         self.records["filename"] =  [record['filename'] for record in records_list]
-        if self.image_options.get("predict_dataset", False):
+        if not self.image_options.get("predict_dataset", False):
             self.records["annotation"] = [record['annotation'] for record in records_list]
+
         #tf_records_placeholder = tf.placeholder(self.records)
         if 'annotation' in self.records:
             self.dataset = Dataset.from_tensor_slices((self.records['image'], self.records['filename'],
@@ -42,16 +43,17 @@ class DatasetReader:
     def _input_parser(self, image_filename, name, annotation_filename=None):
         #Based on https://github.com/tensorflow/tensorflow/issues/9356, decode_jpeg and decode_png both decode both formats
         #This is a workaround because decode_image does not return a static size, which breaks resize_images
-        image = tf.image.decode_jpeg(tf.read_file(image_filename))
+        image = tf.image.decode_png(tf.read_file(image_filename))
         if self.image_options.get("resize", False):
             image = tf.image.resize_images(image, (self.image_options["resize_size"], self.image_options["resize_size"]))
         annotation = None
         if annotation_filename is not None:
-            annotation = tf.image.decode_image(tf.read_file(annotation_filename))
+            annotation = tf.image.decode_png(tf.read_file(annotation_filename))
             if self.image_options.get("resize", False):
                 annotation = tf.image.resize_images(annotation,
                                                (self.image_options["resize_size"], self.image_options["resize_size"]))
         if self.image_options.get("image_augmentation", False):
+            print("Both image and annotation")
             return self._augment_image(image, annotation)
         elif annotation_filename is None:
             return image
@@ -88,8 +90,8 @@ class TrainVal:
         train_val = cls()
         train_val.train = train_reader
         train_val.validation = val_reader
-        train_val._create_iterator()
-        train_val._create_ops()
+        train_val._create_iterators()
+        #train_val._create_ops()
         return train_val
 
     @classmethod

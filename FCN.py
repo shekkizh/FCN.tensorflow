@@ -145,6 +145,23 @@ def train(loss_val, var_list):
 
 def main(argv=None):
     keep_probability = tf.placeholder(tf.float32, name="keep_probabilty")
+    image = tf.placeholder(tf.float32, shape=[None, IMAGE_SIZE, IMAGE_SIZE, 3], name="input_image")
+    annotation = tf.placeholder(tf.int32, shape=[None, IMAGE_SIZE, IMAGE_SIZE, 1], name="annotation")
+
+    pred_annotation, logits = inference(image, keep_probability)
+    tf.summary.image("input_image", image, max_outputs=FLAGS.batch_size)
+    tf.summary.image("ground_truth", tf.cast(annotation, tf.uint8), max_outputs=FLAGS.batch_size)
+    tf.summary.image("pred_annotation", tf.cast(pred_annotation, tf.uint8), max_outputs=FLAGS.batch_size)
+    loss = tf.reduce_mean((tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits,
+                                                                          labels=tf.squeeze(annotation, squeeze_dims=[3]),
+                                                                          name="entropy")))
+    loss_summary = tf.summary.scalar("entropy", loss)
+
+    trainable_var = tf.trainable_variables()
+    if FLAGS.debug:
+        for var in trainable_var:
+            utils.add_to_regularization_and_summary(var)
+    train_op = train(loss, trainable_var)
 
     print("Setting up summary op...")
     summary_op = tf.summary.merge_all()
@@ -188,24 +205,7 @@ def main(argv=None):
         for i in xrange(MAX_ITERATION):
 
             train_images, train_annotations = it_train.get_next()
-
-            pred_annotation, logits = inference(train_images, keep_probability)
-            tf.summary.image("input_image", train_images, max_outputs=FLAGS.batch_size)
-            tf.summary.image("ground_truth", tf.cast(train_annotations, tf.uint8), max_outputs=FLAGS.batch_size)
-            tf.summary.image("pred_annotation", tf.cast(pred_annotation, tf.uint8), max_outputs=FLAGS.batch_size)
-            loss = tf.reduce_mean((tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits,
-                                                                                  labels=tf.squeeze(train_annotations,
-                                                                                                    squeeze_dims=[3]),
-                                                                                  name="entropy")))
-            loss_summary = tf.summary.scalar("entropy", loss)
-
-            trainable_var = tf.trainable_variables()
-            if FLAGS.debug:
-                for var in trainable_var:
-                    utils.add_to_regularization_and_summary(var)
-            train_op = train(loss, trainable_var)
-
-            feed_dict = {keep_probability: (1 - FLAGS.dropout)}
+            feed_dict = {image: train_images, annotation: train_annotations, keep_probability: (1 - FLAGS.dropout)}
 
             sess.run(train_op, feed_dict=feed_dict)
 
@@ -218,17 +218,8 @@ def main(argv=None):
                 #sess.run(val_init_op)
 
                 valid_images, valid_annotations = it_val.get_next()
-
-                pred_annotation, logits = inference(train_images, keep_probability)
-                tf.summary.image("input_image", train_images, max_outputs=FLAGS.batch_size)
-                tf.summary.image("ground_truth", tf.cast(train_annotations, tf.uint8), max_outputs=FLAGS.batch_size)
-                tf.summary.image("pred_annotation", tf.cast(pred_annotation, tf.uint8), max_outputs=FLAGS.batch_size)
-                loss = tf.reduce_mean((tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits,
-                                                                                      labels=tf.squeeze(
-                                                                                          train_annotations,
-                                                                                          squeeze_dims=[3]),
-                                                                                      name="entropy")))
-                valid_loss, summary_sva = sess.run([loss, loss_summary], feed_dict={keep_probability: 1.0})
+                valid_loss, summary_sva = sess.run([loss, loss_summary], feed_dict={image: valid_images, annotation: valid_annotations,
+                                                       keep_probability: 1.0})
                 print("%s ---> Validation_loss: %g" % (datetime.datetime.now(), valid_loss))
 
                 # add validation loss to TensorBoard
@@ -237,42 +228,42 @@ def main(argv=None):
                 #sess.run(training_init_op)
 
 
-    # elif FLAGS.mode == "visualize":
-    #     iterator = train_val_dataset.get_iterator()
-    #     get_next = iterator.get_next()
-    #     training_init_op, val_init_op = train_val_dataset.get_ops()
-    #     sess.run(val_init_op)
-    #     valid_images, valid_annotations = sess.run(get_next)
-    #     pred = sess.run(pred_annotation, feed_dict={image: valid_images, annotation: valid_annotations,
-    #                                                 keep_probability: 1.0})
-    #     valid_annotations = np.squeeze(valid_annotations, axis=3)
-    #     pred = np.squeeze(pred, axis=3)
-    #
-    #     for itr in range(FLAGS.batch_size):
-    #         utils.save_image(valid_images[itr].astype(np.uint8), FLAGS.logs_dir, name="inp_" + str(5+itr))
-    #         utils.save_image(valid_annotations[itr].astype(np.uint8), FLAGS.logs_dir, name="gt_" + str(5+itr))
-    #         utils.save_image(pred[itr].astype(np.uint8), FLAGS.logs_dir, name="pred_" + str(5+itr))
-    #         print("Saved image: %d" % itr)
-    #
-    # elif FLAGS.mode == "predict":
-    #     predict_records = scene_parsing.read_prediction_set(FLAGS.data_dir)
-    #     no_predict_images = len(predict_records)
-    #     print ("No. of predict records {}".format(no_predict_images))
-    #     predict_image_options = {'resize': True, 'resize_size': IMAGE_SIZE, 'predict_dataset': True}
-    #     test_dataset_reader = dataset.BatchDatset(predict_records, predict_image_options)
-    #     print("Predicting {} images".format(no_predict_images))
-    #
-    #     if not os.path.exists(os.path.join(FLAGS.logs_dir, "predictions")):
-    #         os.makedirs(os.path.join(FLAGS.logs_dir, "predictions"))
-    #     for i in range(no_predict_images):
-    #         if (i % 10 == 0):
-    #             print("Predicted {}/{} images".format(i, no_predict_images))
-    #         predict_images = test_dataset_reader.next_batch(1)
-    #         pred = sess.run(pred_annotation, feed_dict={image: predict_images,
-    #                                                     keep_probability: 1.0})
-    #         pred = np.squeeze(pred, axis=3)
-    #         utils.save_image(pred[0].astype(np.uint8), os.path.join(FLAGS.logs_dir, "predictions"),
-    #                          name="predict_" + test_dataset_reader.files[i]['filename'])
+    elif FLAGS.mode == "visualize":
+        iterator = train_val_dataset.get_iterator()
+        get_next = iterator.get_next()
+        training_init_op, val_init_op = train_val_dataset.get_ops()
+        sess.run(val_init_op)
+        valid_images, valid_annotations = sess.run(get_next)
+        pred = sess.run(pred_annotation, feed_dict={image: valid_images, annotation: valid_annotations,
+                                                    keep_probability: 1.0})
+        valid_annotations = np.squeeze(valid_annotations, axis=3)
+        pred = np.squeeze(pred, axis=3)
+
+        for itr in range(FLAGS.batch_size):
+            utils.save_image(valid_images[itr].astype(np.uint8), FLAGS.logs_dir, name="inp_" + str(5+itr))
+            utils.save_image(valid_annotations[itr].astype(np.uint8), FLAGS.logs_dir, name="gt_" + str(5+itr))
+            utils.save_image(pred[itr].astype(np.uint8), FLAGS.logs_dir, name="pred_" + str(5+itr))
+            print("Saved image: %d" % itr)
+
+    elif FLAGS.mode == "predict":
+        predict_records = scene_parsing.read_prediction_set(FLAGS.data_dir)
+        no_predict_images = len(predict_records)
+        print ("No. of predict records {}".format(no_predict_images))
+        predict_image_options = {'resize': True, 'resize_size': IMAGE_SIZE, 'predict_dataset': True}
+        test_dataset_reader = dataset.BatchDatset(predict_records, predict_image_options)
+        print("Predicting {} images".format(no_predict_images))
+
+        if not os.path.exists(os.path.join(FLAGS.logs_dir, "predictions")):
+            os.makedirs(os.path.join(FLAGS.logs_dir, "predictions"))
+        for i in range(no_predict_images):
+            if (i % 10 == 0):
+                print("Predicted {}/{} images".format(i, no_predict_images))
+            predict_images = test_dataset_reader.next_batch(1)
+            pred = sess.run(pred_annotation, feed_dict={image: predict_images,
+                                                        keep_probability: 1.0})
+            pred = np.squeeze(pred, axis=3)
+            utils.save_image(pred[0].astype(np.uint8), os.path.join(FLAGS.logs_dir, "predictions"),
+                             name="predict_" + test_dataset_reader.files[i]['filename'])
 
 
 if __name__ == "__main__":

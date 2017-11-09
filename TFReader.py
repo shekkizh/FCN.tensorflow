@@ -68,7 +68,7 @@ class DatasetReader:
         combined_image_label = tf.image.random_flip_up_down(combined_image_label)
         if annotation_file is not None:
             distorted_image = combined_image_label[:, :, :3]
-            distorted_annotation = combined_image_label[:, :, :3]
+            distorted_annotation = combined_image_label[:, :, 3]
         else:
             distorted_image = combined_image_label
         distorted_image = tf.image.random_brightness(distorted_image, max_delta=63)

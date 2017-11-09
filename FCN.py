@@ -207,8 +207,6 @@ def main(argv=None):
         for i in xrange(MAX_ITERATION):
 
             train_images, train_annotations = sess.run([next_train_images, next_train_annotations])
-            print("Train images shape: ", train_images.shape)
-            print("Train annotation shape: ", train_annotations.shape)
             feed_dict = {image: train_images, annotation: train_annotations, keep_probability: (1 - FLAGS.dropout)}
 
             sess.run(train_op, feed_dict=feed_dict)

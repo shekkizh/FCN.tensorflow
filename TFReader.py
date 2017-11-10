@@ -83,6 +83,8 @@ class DatasetReader:
 
 class TrainVal:
     def __init__(self):
+        self.train = None
+        self.validation = None
         pass
 
     @classmethod
@@ -101,38 +103,24 @@ class TrainVal:
         return cls.from_DatasetReaders(train_reader, val_reader)
 
     def _create_iterators(self):
-        if not self.train or not self.validation:
-            return
-        # self.iterator = Iterator.from_structure(self.train.dataset.output_types,
-        #                                         self.train.dataset.output_shapes)
-        self.train_iterator = self.train.dataset.make_one_shot_iterator()
-        self.validation_iterator = self.validation.dataset.make_one_shot_iterator()
-    # def _create_ops(self):
-    #     if not self.train or not self.validation:
-    #         return
-    #     # self.training_init_op = self.iterator.make_initializer(self.train.dataset)
-    #     # self.validation_init_op = self.iterator.make_initializer(self.validation.dataset)
-    #     self.training_init_op = self.train.dataset.make_initializable_iterator()
-    #     self.validation_init_op = self.validation.dataset.make_initializable_iterator()
+        if self.train and self.validation:
+            self.train_iterator = self.train.dataset.make_one_shot_iterator()
+            self.validation_iterator = self.validation.dataset.make_one_shot_iterator()
 
     def get_iterators(self):
         if not self.train_iterator or not self.validation_iterator:
             self._create_iterators()
         return self.train_iterator, self.validation_iterator
 
-    # def get_ops(self):
-    #     if not self.training_init_op or self.validation_init_op:
-    #         self._create_ops()
-    #     return self.training_init_op, self.validation_init_op
 class SingleDataset:
     def __init__(self):
+        self.dataset = None
         pass
     @classmethod
     def from_DatasetReaders(cls, reader):
         dataset = cls()
         dataset.reader = reader
         dataset._create_iterator()
-        dataset._create_ops()
         return dataset
 
     @classmethod
@@ -141,9 +129,10 @@ class SingleDataset:
         return cls.from_DatasetReaders(reader)
 
     def _create_iterator(self):
-        self.iterator = Iterator.from_structure(self.dataset.dataset.output_types,
-                                                self.dataset.dataset.output_shapes)
-    def _create_ops(self):
-        self.init_op = self.iterator.make_initializer(self.dataset.dataset)
-
+        if self.dataset:
+            self.iterator = self.dataset.make_one_shot_iterator()
+    def get_iterator(self):
+        if not self.iterator:
+            self._create_iterator()
+        return self.iterator
 

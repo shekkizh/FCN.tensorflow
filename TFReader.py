@@ -114,7 +114,7 @@ class TrainVal:
 
 class SingleDataset:
     def __init__(self):
-        self.dataset = None
+        self.reader = None
         self.iterator = None
         pass
     @classmethod
@@ -130,8 +130,8 @@ class SingleDataset:
         return cls.from_DatasetReaders(reader)
 
     def _create_iterator(self):
-        if self.dataset:
-            self.iterator = self.dataset.make_one_shot_iterator()
+        if self.reader:
+            self.iterator = self.reader.make_one_shot_iterator()
     def get_iterator(self):
         if not self.iterator:
             self._create_iterator()

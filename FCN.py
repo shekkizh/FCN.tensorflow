@@ -252,7 +252,8 @@ def main(argv=None):
         no_predict_images = len(predict_records)
         print ("No. of predict records {}".format(no_predict_images))
         predict_image_options = {'resize': True, 'resize_size': IMAGE_SIZE, 'predict_dataset': True}
-        test_dataset_reader = dataset.BatchDatset(predict_records, predict_image_options)
+        test_dataset_reader = dataset.SingleDataset.from_records(predict_records, predict_image_options)
+        next_test_image = test_dataset_reader.get_iterator().get_next()
         print("Predicting {} images".format(no_predict_images))
 
         if not os.path.exists(os.path.join(FLAGS.logs_dir, "predictions")):
@@ -260,7 +261,7 @@ def main(argv=None):
         for i in range(no_predict_images):
             if (i % 10 == 0):
                 print("Predicted {}/{} images".format(i, no_predict_images))
-            predict_images = test_dataset_reader.next_batch(1)
+            predict_images = sess.run(next_test_image)
             pred = sess.run(pred_annotation, feed_dict={image: predict_images,
                                                         keep_probability: 1.0})
             pred = np.squeeze(pred, axis=3)

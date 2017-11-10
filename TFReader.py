@@ -53,9 +53,10 @@ class DatasetReader:
                 annotation = tf.image.resize_images(annotation,
                                                (self.image_options["resize_size"], self.image_options["resize_size"]))
         if self.image_options.get("image_augmentation", False):
-            return self._augment_image(image, annotation)
+            #Return image, annotation if existing, and filename
+            return self._augment_image(image, annotation) + (name, )
         elif annotation_filename is None:
-            return image
+            return image, name
         else:
             return image, annotation
 

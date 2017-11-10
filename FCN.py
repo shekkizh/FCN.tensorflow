@@ -202,8 +202,10 @@ def main(argv=None):
         if FLAGS.dropout <=0 or FLAGS.dropout > 1:
             raise ValueError("Dropout value not in range (0,1]")
         #sess.run(training_init_op)
-        next_train_images, next_train_annotations = it_train.get_next()
-        next_val_images, next_val_annotations = it_val.get_next()
+
+        #Ignore filename from reader
+        next_train_images, next_train_annotations, next_train_name = it_train.get_next()
+        next_val_images, next_val_annotations, next_val_name = it_val.get_next()
         for i in xrange(MAX_ITERATION):
 
             train_images, train_annotations = sess.run([next_train_images, next_train_annotations])
@@ -261,12 +263,13 @@ def main(argv=None):
         for i in range(no_predict_images):
             if (i % 10 == 0):
                 print("Predicted {}/{} images".format(i, no_predict_images))
-            predict_images = sess.run(next_test_image)
+            predict_images, predict_names = sess.run(next_test_image)
             pred = sess.run(pred_annotation, feed_dict={image: predict_images,
                                                         keep_probability: 1.0})
             pred = np.squeeze(pred, axis=3)
+            name = sess.run(predict_names)
             utils.save_image(pred[0].astype(np.uint8), os.path.join(FLAGS.logs_dir, "predictions"),
-                             name="predict_" + test_dataset_reader.files[i]['filename'])
+                             name="predict_" + name)
 
 
 if __name__ == "__main__":

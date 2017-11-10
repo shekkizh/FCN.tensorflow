@@ -115,6 +115,7 @@ class TrainVal:
 class SingleDataset:
     def __init__(self):
         self.dataset = None
+        self.iterator = None
         pass
     @classmethod
     def from_DatasetReaders(cls, reader):

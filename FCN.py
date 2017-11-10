@@ -267,9 +267,8 @@ def main(argv=None):
             pred = sess.run(pred_annotation, feed_dict={image: predict_images,
                                                         keep_probability: 1.0})
             pred = np.squeeze(pred, axis=3)
-            name = sess.run(predict_names)
             utils.save_image(pred[0].astype(np.uint8), os.path.join(FLAGS.logs_dir, "predictions"),
-                             name="predict_" + name)
+                             name="predict_" + str(predict_names))
 
 
 if __name__ == "__main__":

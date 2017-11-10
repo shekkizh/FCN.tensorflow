@@ -131,7 +131,7 @@ class SingleDataset:
 
     def _create_iterator(self):
         if self.reader:
-            self.iterator = self.reader.make_one_shot_iterator()
+            self.iterator = self.reader.dataset.make_one_shot_iterator()
     def get_iterator(self):
         if not self.iterator:
             self._create_iterator()

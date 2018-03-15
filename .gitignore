@@ -3,3 +3,5 @@ logs/*
 Data_zoo/*
 Model_zoo/*
 *.pyc
+dataset/*
+*.zip

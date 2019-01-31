@@ -4,6 +4,7 @@ import os
 import random
 from six.moves import cPickle as pickle
 from tensorflow.python.platform import gfile
+# file match
 import glob
 
 import TensorflowUtils as utils

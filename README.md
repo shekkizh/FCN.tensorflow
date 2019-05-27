@@ -10,7 +10,7 @@ The implementation is largely based on the reference code provided by the author
 
 ## Prerequisites
  - The results were obtained after training for ~6-7 hrs on a 12GB TitanX.
- - The code was originally written and tested with `tensorflow0.11` and `python2.7`. 
+ - The code was originally written and tested with `tensorflow1.9` and `python2.7`. 
  The tf.summary calls have been updated to work with tensorflow version 0.12. To work with older versions of tensorflow use branch [tf.0.11_compatible](https://github.com/shekkizh/FCN.tensorflow/tree/tf.0.11_compatible).
  - Some of the problems while working with tensorflow1.0 and in windows have been discussed in [Issue #9](https://github.com/shekkizh/FCN.tensorflow/issues/9).
  - To train model simply execute `python FCN.py`
@@ -23,13 +23,13 @@ Results were obtained by training the model in batches of 2 with resized image o
 
 Pretty much used the same network design as in the reference model implementation of the paper in caffe. The weights for the new layers added were initialized with small values, and the learning was done using Adam Optimizer (Learning rate = 1e-4). 
 
-![](./test_results/crop_result1.png) ![](./test_results/crop_result2.png)
+![](logs/images/crop_result1.png) ![](logs/images/crop_result2.png)
 
-![](./test_results/crop_result3.png) ![](./test_results/crop_result4.png)
+![](logs/images/crop_result3.png) ![](logs/images/crop_result4.png)
 
-![](./test_results/crop_result5.png) ![](./test_results/crop_result6.png)
+![](logs/images/crop_result5.png) ![](logs/images/crop_result6.png)
 
-![](./test_results/crop_result7.png) ![](./test_results/crop_result8.png)
+![](logs/images/crop_result7.png) ![](logs/images/crop_result8.png)
 
 
 

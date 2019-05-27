@@ -23,15 +23,15 @@ Results were obtained by training the model in batches of 2 with resized image o
 
 Pretty much used the same network design as in the reference model implementation of the paper in caffe. The weights for the new layers added were initialized with small values, and the learning was done using Adam Optimizer (Learning rate = 1e-4). 
 
-![](logs/images/inp_1.png)  ![](logs/images/gt_c1.png) ![](logs/images/pred_c1.png)
+![](./test_results/crop_result1.png) ![](./test_results/crop_result2.png)
 
-![](logs/images/inp_2.png)  ![](logs/images/gt_c2.png) ![](logs/images/pred_c2.png)
+![](./test_results/crop_result3.png) ![](./test_results/crop_result4.png)
 
-![](logs/images/inp_3.png)  ![](logs/images/gt_c3.png) ![](logs/images/pred_c3.png)
+![](./test_results/crop_result5.png) ![](./test_results/crop_result6.png)
 
-![](logs/images/inp_4.png)  ![](logs/images/gt_c4.png) ![](logs/images/pred_c4.png)
+![](./test_results/crop_result7.png) ![](./test_results/crop_result8.png)
 
-![](logs/images/inp_6.png)  ![](logs/images/gt_c6.png) ![](logs/images/pred_c6.png)
+
 
 ## Observations
  - The small batch size was necessary to fit the training model in memory but explains the slow learning

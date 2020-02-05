@@ -35,7 +35,7 @@ class BatchDatset:
         self.images = np.array([self._transform(filename['image']) for filename in self.files])
         self.__channels = False
         self.annotations = np.array(
-            [np.expand_dims(self._transform(filename['annotation']), axis=3) for filename in self.files])
+            [np.expand_dims(self._transform(filename['annotation']), axis=2) for filename in self.files])
         print (self.images.shape)
         print (self.annotations.shape)
 

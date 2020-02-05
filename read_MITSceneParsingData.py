@@ -51,7 +51,7 @@ def create_image_lists(image_dir):
             print('No files found')
         else:
             for f in file_list:
-                filename = os.path.splitext(f.split("/")[-1])[0]
+                filename = os.path.splitext(f.split("\\")[-1])[0]
                 annotation_file = os.path.join(image_dir, "annotations", directory, filename + '.png')
                 if os.path.exists(annotation_file):
                     record = {'image': f, 'annotation': annotation_file, 'filename': filename}

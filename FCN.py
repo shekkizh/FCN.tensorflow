@@ -81,11 +81,15 @@ def inference(image, keep_prob):
 
     with tf.variable_scope("inference"):
         image_net = vgg_net(weights, processed_image)
+        # type(image_net)
+        # dictionary, name_of_layer => layer
         conv_final_layer = image_net["conv5_3"]
-
+        # according to figure 3,
+        # conv 5-1, 5-2, 5-3
+        # followed by pool5, conv6 and conv7
         pool5 = utils.max_pool_2x2(conv_final_layer)
 
-        W6 = utils.weight_variable([7, 7, 512, 4096], name="W6")
+        W6 = utils.weight_variable([7, 7, 512, 4096], name="W6") # [height, width, in_channel, out_channel]
         b6 = utils.bias_variable([4096], name="b6")
         conv6 = utils.conv2d_basic(pool5, W6, b6)
         relu6 = tf.nn.relu(conv6, name="relu6")
@@ -101,6 +105,7 @@ def inference(image, keep_prob):
             utils.add_activation_summary(relu7)
         relu_dropout7 = tf.nn.dropout(relu7, keep_prob=keep_prob)
 
+        # where does conv8 come from?
         W8 = utils.weight_variable([1, 1, 4096, NUM_OF_CLASSESS], name="W8")
         b8 = utils.bias_variable([NUM_OF_CLASSESS], name="b8")
         conv8 = utils.conv2d_basic(relu_dropout7, W8, b8)
@@ -108,21 +113,30 @@ def inference(image, keep_prob):
 
         # now to upscale to actual image size
         deconv_shape1 = image_net["pool4"].get_shape()
+        # where does filter size 4x4 come from?
+        # its design choice, but need to be larger than stride
         W_t1 = utils.weight_variable([4, 4, deconv_shape1[3].value, NUM_OF_CLASSESS], name="W_t1")
         b_t1 = utils.bias_variable([deconv_shape1[3].value], name="b_t1")
+        # stride is 2(factored by 2) for this transpose upsampling
         conv_t1 = utils.conv2d_transpose_strided(conv8, W_t1, b_t1, output_shape=tf.shape(image_net["pool4"]))
+        # combines 2x upsampled layer and pool4 layer
         fuse_1 = tf.add(conv_t1, image_net["pool4"], name="fuse_1")
 
         deconv_shape2 = image_net["pool3"].get_shape()
         W_t2 = utils.weight_variable([4, 4, deconv_shape2[3].value, deconv_shape1[3].value], name="W_t2")
         b_t2 = utils.bias_variable([deconv_shape2[3].value], name="b_t2")
+        # deconvolution fuse1 with W_t2
+        # stride is 2(factored by 2) for this transpose upsampling
         conv_t2 = utils.conv2d_transpose_strided(fuse_1, W_t2, b_t2, output_shape=tf.shape(image_net["pool3"]))
+        # combines 2x upsampled previous fused layer and pool3 layer
         fuse_2 = tf.add(conv_t2, image_net["pool3"], name="fuse_2")
 
         shape = tf.shape(image)
         deconv_shape3 = tf.stack([shape[0], shape[1], shape[2], NUM_OF_CLASSESS])
         W_t3 = utils.weight_variable([16, 16, NUM_OF_CLASSESS, deconv_shape2[3].value], name="W_t3")
         b_t3 = utils.bias_variable([NUM_OF_CLASSESS], name="b_t3")
+        # finally upsample the layer to replace input size
+        # 8x upsampling, so that this net is FCN-8s
         conv_t3 = utils.conv2d_transpose_strided(fuse_2, W_t3, b_t3, output_shape=deconv_shape3, stride=8)
 
         annotation_pred = tf.argmax(conv_t3, dimension=3, name="prediction")

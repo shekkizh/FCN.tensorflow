@@ -2,4 +2,6 @@ logs/*
 .idea
 Data_zoo/*
 Model_zoo/*
+data/
 *.pyc
+.ipynb_checkpoints/

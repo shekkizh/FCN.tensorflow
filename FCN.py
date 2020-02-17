@@ -11,7 +11,8 @@ from six.moves import xrange
 FLAGS = tf.flags.FLAGS
 tf.flags.DEFINE_integer("batch_size", "2", "batch size for training")
 tf.flags.DEFINE_string("logs_dir", "logs/", "path to logs directory")
-tf.flags.DEFINE_string("data_dir", "Data_zoo/MIT_SceneParsing/", "path to dataset")
+# tf.flags.DEFINE_string("data_dir", "Data_zoo/MIT_SceneParsing/", "path to dataset")
+tf.flags.DEFINE_string("data_dir", "data/BraTS2018/MICCAI_BraTS_2018_Data_Training/HGG", "path to dataset")
 tf.flags.DEFINE_float("learning_rate", "1e-4", "Learning rate for Adam Optimizer")
 tf.flags.DEFINE_string("model_dir", "Model_zoo/", "Path to vgg model mat")
 tf.flags.DEFINE_bool('debug', "False", "Debug mode: True/ False")
@@ -20,9 +21,11 @@ tf.flags.DEFINE_string('mode', "train", "Mode train/ test/ visualize")
 MODEL_URL = 'http://www.vlfeat.org/matconvnet/models/beta16/imagenet-vgg-verydeep-19.mat'
 
 MAX_ITERATION = int(1e5 + 1)
-NUM_OF_CLASSESS = 151
+# NUM_OF_CLASSESS = 151
+NUM_OF_CLASSESS = 2
 IMAGE_SIZE = 224
-
+# IMAGE_SIZE = 240
+NUM_INPUT_CHANNEL = 4
 
 def vgg_net(weights, image):
     layers = (
@@ -46,10 +49,19 @@ def vgg_net(weights, image):
         kind = name[:4]
         if kind == 'conv':
             kernels, bias = weights[i][0][0][0][0]
+            if (name == 'conv1_1'):
+                kernel_shape = kernels.shape[:2] + (4, ) + kernels.shape[3:]
+            else:
+                kernel_shape = kernels.shape
+            
+            bias_shape = bias.shape
+            new_kernel = np.empty(kernel_shape)
+            new_bias = np.empty(bias_shape)
             # matconvnet: weights are [width, height, in_channels, out_channels]
             # tensorflow: weights are [height, width, in_channels, out_channels]
-            kernels = utils.get_variable(np.transpose(kernels, (1, 0, 2, 3)), name=name + "_w")
-            bias = utils.get_variable(bias.reshape(-1), name=name + "_b")
+            kernels = utils.get_variable(np.transpose(new_kernel, (1, 0, 2, 3)), name=name + "_w")
+            bias = utils.get_variable(new_bias.reshape(-1), name=name + "_b")
+
             current = utils.conv2d_basic(current, kernels, bias)
         elif kind == 'relu':
             current = tf.nn.relu(current, name=name)
@@ -57,6 +69,7 @@ def vgg_net(weights, image):
                 utils.add_activation_summary(current)
         elif kind == 'pool':
             current = utils.avg_pool_2x2(current)
+
         net[name] = current
 
     return net
@@ -70,19 +83,21 @@ def inference(image, keep_prob):
     :return:
     """
     print("setting up vgg initialized conv layers ...")
+    # get pre-trained model
     model_data = utils.get_model_data(FLAGS.model_dir, MODEL_URL)
 
-    mean = model_data['normalization'][0][0][0]
-    mean_pixel = np.mean(mean, axis=(0, 1))
+    # mean = model_data['normalization'][0][0][0]
+    # mean_pixel = np.mean(mean, axis=(0, 1))
 
     weights = np.squeeze(model_data['layers'])
-
-    processed_image = utils.process_image(image, mean_pixel)
+    # processed_image = utils.process_image(image, mean_pixel)
+    processed_image = image
 
     with tf.variable_scope("inference"):
         image_net = vgg_net(weights, processed_image)
         # type(image_net)
         # dictionary, name_of_layer => layer
+        print(f"image net loaded")
         conv_final_layer = image_net["conv5_3"]
         # according to figure 3,
         # conv 5-1, 5-2, 5-3
@@ -138,9 +153,12 @@ def inference(image, keep_prob):
         # finally upsample the layer to replace input size
         # 8x upsampling, so that this net is FCN-8s
         conv_t3 = utils.conv2d_transpose_strided(fuse_2, W_t3, b_t3, output_shape=deconv_shape3, stride=8)
+        print(f"conv_t3 shape: {conv_t3.shape}")
 
+        # annotation_pred = tf.argmax(conv_t3, dimension=3, name="prediction")
         annotation_pred = tf.argmax(conv_t3, dimension=3, name="prediction")
-
+        print(f"annotation pred: {annotation_pred}")
+        
     return tf.expand_dims(annotation_pred, dim=3), conv_t3
 
 
@@ -156,13 +174,17 @@ def train(loss_val, var_list):
 
 def main(argv=None):
     keep_probability = tf.placeholder(tf.float32, name="keep_probabilty")
-    image = tf.placeholder(tf.float32, shape=[None, IMAGE_SIZE, IMAGE_SIZE, 3], name="input_image")
+    # image = tf.placeholder(tf.float32, shape=[None, IMAGE_SIZE, IMAGE_SIZE, 3], name="input_image")
+    image = tf.placeholder(tf.float32, shape=[None, IMAGE_SIZE, IMAGE_SIZE, 4], name="input_image")
     annotation = tf.placeholder(tf.int32, shape=[None, IMAGE_SIZE, IMAGE_SIZE, 1], name="annotation")
 
     pred_annotation, logits = inference(image, keep_probability)
     tf.summary.image("input_image", image, max_outputs=2)
     tf.summary.image("ground_truth", tf.cast(annotation, tf.uint8), max_outputs=2)
     tf.summary.image("pred_annotation", tf.cast(pred_annotation, tf.uint8), max_outputs=2)
+
+    print(f"logits: {logits}")
+    print(f"labels: {tf.squeeze(annotation, squeeze_dims=[3])}")
     loss = tf.reduce_mean((tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits,
                                                                           labels=tf.squeeze(annotation, squeeze_dims=[3]),
                                                                           name="entropy")))
@@ -176,7 +198,7 @@ def main(argv=None):
 
     print("Setting up summary op...")
     summary_op = tf.summary.merge_all()
-
+############################################ Do Not Modifiy Code Above ###############################################3
     print("Setting up image reader...")
     train_records, valid_records = scene_parsing.read_dataset(FLAGS.data_dir)
     print(len(train_records))
@@ -185,6 +207,7 @@ def main(argv=None):
     print("Setting up dataset reader")
     image_options = {'resize': True, 'resize_size': IMAGE_SIZE}
     if FLAGS.mode == 'train':
+        print("reading training dataset... wait a moment...")
         train_dataset_reader = dataset.BatchDatset(train_records, image_options)
     validation_dataset_reader = dataset.BatchDatset(valid_records, image_options)
 

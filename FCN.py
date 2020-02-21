@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 
 import TensorflowUtils as utils
-import read_MITSceneParsingData as scene_parsing
+import read_BraTSData as scene_parsing
 import datetime
 import BatchDatsetReader as dataset
 from six.moves import xrange
@@ -13,7 +13,8 @@ tf.flags.DEFINE_integer("batch_size", "2", "batch size for training")
 tf.flags.DEFINE_string("logs_dir", "logs/", "path to logs directory")
 # tf.flags.DEFINE_string("data_dir", "Data_zoo/MIT_SceneParsing/", "path to dataset")
 tf.flags.DEFINE_string("data_dir", "data/BraTS2018/MICCAI_BraTS_2018_Data_Training/HGG", "path to dataset")
-tf.flags.DEFINE_float("learning_rate", "1e-4", "Learning rate for Adam Optimizer")
+# tf.flags.DEFINE_float("learning_rate", "1e-4", "Learning rate for Adam Optimizer")
+tf.flags.DEFINE_float("learning_rate", "1e-5", "Learning rate for Adam Optimizer")
 tf.flags.DEFINE_string("model_dir", "Model_zoo/", "Path to vgg model mat")
 tf.flags.DEFINE_bool('debug', "False", "Debug mode: True/ False")
 tf.flags.DEFINE_string('mode', "train", "Mode train/ test/ visualize")
@@ -24,7 +25,6 @@ MAX_ITERATION = int(1e5 + 1)
 # NUM_OF_CLASSESS = 151
 NUM_OF_CLASSESS = 2
 IMAGE_SIZE = 224
-# IMAGE_SIZE = 240
 NUM_INPUT_CHANNEL = 4
 
 def vgg_net(weights, image):
@@ -55,8 +55,8 @@ def vgg_net(weights, image):
                 kernel_shape = kernels.shape
             
             bias_shape = bias.shape
-            new_kernel = np.empty(kernel_shape)
-            new_bias = np.empty(bias_shape)
+            new_kernel = np.zeros(kernel_shape)
+            new_bias = np.zeros(bias_shape)
             # matconvnet: weights are [width, height, in_channels, out_channels]
             # tensorflow: weights are [height, width, in_channels, out_channels]
             kernels = utils.get_variable(np.transpose(new_kernel, (1, 0, 2, 3)), name=name + "_w")
@@ -69,7 +69,6 @@ def vgg_net(weights, image):
                 utils.add_activation_summary(current)
         elif kind == 'pool':
             current = utils.avg_pool_2x2(current)
-
         net[name] = current
 
     return net
@@ -124,7 +123,7 @@ def inference(image, keep_prob):
         W8 = utils.weight_variable([1, 1, 4096, NUM_OF_CLASSESS], name="W8")
         b8 = utils.bias_variable([NUM_OF_CLASSESS], name="b8")
         conv8 = utils.conv2d_basic(relu_dropout7, W8, b8)
-        # annotation_pred1 = tf.argmax(conv8, dimension=3, name="prediction1")
+        annotation_pred1 = tf.argmax(conv8, dimension=3, name="prediction1")
 
         # now to upscale to actual image size
         deconv_shape1 = image_net["pool4"].get_shape()
@@ -153,13 +152,10 @@ def inference(image, keep_prob):
         # finally upsample the layer to replace input size
         # 8x upsampling, so that this net is FCN-8s
         conv_t3 = utils.conv2d_transpose_strided(fuse_2, W_t3, b_t3, output_shape=deconv_shape3, stride=8)
-        print(f"conv_t3 shape: {conv_t3.shape}")
 
-        # annotation_pred = tf.argmax(conv_t3, dimension=3, name="prediction")
         annotation_pred = tf.argmax(conv_t3, dimension=3, name="prediction")
-        print(f"annotation pred: {annotation_pred}")
         
-    return tf.expand_dims(annotation_pred, dim=3), conv_t3
+    return tf.expand_dims(annotation_pred, dim=3), conv_t3, annotation_pred1, conv8
 
 
 def train(loss_val, var_list):
@@ -175,16 +171,15 @@ def train(loss_val, var_list):
 def main(argv=None):
     keep_probability = tf.placeholder(tf.float32, name="keep_probabilty")
     # image = tf.placeholder(tf.float32, shape=[None, IMAGE_SIZE, IMAGE_SIZE, 3], name="input_image")
+    # 4 for t1, t1ce, t2 and flair
     image = tf.placeholder(tf.float32, shape=[None, IMAGE_SIZE, IMAGE_SIZE, 4], name="input_image")
     annotation = tf.placeholder(tf.int32, shape=[None, IMAGE_SIZE, IMAGE_SIZE, 1], name="annotation")
 
-    pred_annotation, logits = inference(image, keep_probability)
+    pred_annotation, logits, conv8_annotation, conv8 = inference(image, keep_probability)
     tf.summary.image("input_image", image, max_outputs=2)
     tf.summary.image("ground_truth", tf.cast(annotation, tf.uint8), max_outputs=2)
     tf.summary.image("pred_annotation", tf.cast(pred_annotation, tf.uint8), max_outputs=2)
 
-    print(f"logits: {logits}")
-    print(f"labels: {tf.squeeze(annotation, squeeze_dims=[3])}")
     loss = tf.reduce_mean((tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits,
                                                                           labels=tf.squeeze(annotation, squeeze_dims=[3]),
                                                                           name="entropy")))
@@ -198,7 +193,6 @@ def main(argv=None):
 
     print("Setting up summary op...")
     summary_op = tf.summary.merge_all()
-############################################ Do Not Modifiy Code Above ###############################################3
     print("Setting up image reader...")
     train_records, valid_records = scene_parsing.read_dataset(FLAGS.data_dir)
     print(len(train_records))
@@ -235,8 +229,23 @@ def main(argv=None):
             sess.run(train_op, feed_dict=feed_dict)
 
             if itr % 10 == 0:
-                train_loss, summary_str = sess.run([loss, loss_summary], feed_dict=feed_dict)
+                train_loss, summary_str, pred, conv8_annot, conv8_raw = sess.run([loss, loss_summary, pred_annotation, conv8_annotation, conv8], feed_dict=feed_dict)
                 print("Step: %d, Train_loss:%g" % (itr, train_loss))
+                print(f"train image shape: {train_images[0].shape}, max: {np.max(train_images[0])}, min: {np.min(train_images[0])}")
+                print(f"conv8_raw single class shape: {conv8_raw[:, :, :, 0].shape}")
+                print(f"img_1 conv8_raw background class max: {np.max(conv8_raw[0, :, :, 0])}, min: {np.min(conv8_raw[0, :, :, 0])}")
+                print(f"{conv8_raw[0, :, :, :]}")
+                print(f"img_1 conv8_raw tumor class max: {np.max(conv8_raw[0, :, :, 1])}, min: {np.min(conv8_raw[0, :, :, 1])}")
+                print(f"img_2 conv8_raw background class max: {np.max(conv8_raw[1, :, :, 0])}, min: {np.min(conv8_raw[1, :, :, 0])}")
+                print(f"{conv8_raw[1, :, :, :]}")
+                print(f"img_2 conv8_raw tumor class max: {np.max(conv8_raw[1, :, :, 1])}, min: {np.min(conv8_raw[1, :, :, 1])}")
+                print(f"conv8_layer shape: {conv8_annot.shape}, annotation:\n{conv8_annot[0, :, :]}")
+                # conv8_annot = np.squeeze(conv8_annot, axis=3) * 100
+                pred = np.squeeze(pred, axis=3) * 100
+                # utils.save_image(conv8_annot.astype(np.uint8), FLAGS.logs_dir, name="conv8_annot_" + str(5+itr))
+                utils.save_image(pred[0].astype(np.uint8), FLAGS.logs_dir, name="pred_" + str(5+itr))
+                # print(f"max of predicted annotation: {np.max(pred[0])}")
+                print(f"final_layer shape: {pred[0].shape}, annotation:\n{pred[0]}")
                 train_writer.add_summary(summary_str, itr)
 
             if itr % 500 == 0:
@@ -245,7 +254,7 @@ def main(argv=None):
                                                        keep_probability: 1.0})
                 print("%s ---> Validation_loss: %g" % (datetime.datetime.now(), valid_loss))
 
-                # add validation loss to TensorBoard
+                 # add validation loss to TensorBoard
                 validation_writer.add_summary(summary_sva, itr)
                 saver.save(sess, FLAGS.logs_dir + "model.ckpt", itr)
 

@@ -17,7 +17,7 @@ tf.flags.DEFINE_string("data_dir", "data/BraTS2018/MICCAI_BraTS_2018_Data_Traini
 tf.flags.DEFINE_float("learning_rate", "1e-5", "Learning rate for Adam Optimizer")
 tf.flags.DEFINE_string("model_dir", "Model_zoo/", "Path to vgg model mat")
 tf.flags.DEFINE_bool('debug', "False", "Debug mode: True/ False")
-tf.flags.DEFINE_string('mode', "train", "Mode train/ test/ visualize")
+tf.flags.DEFINE_string('mode', "train", "Mode train/ test/ visualize/ evalutate")
 
 MODEL_URL = 'http://www.vlfeat.org/matconvnet/models/beta16/imagenet-vgg-verydeep-19.mat'
 
@@ -55,13 +55,26 @@ def vgg_net(weights, image):
                 kernel_shape = kernels.shape
             
             bias_shape = bias.shape
-            new_kernel = np.zeros(kernel_shape)
-            new_bias = np.zeros(bias_shape)
             # matconvnet: weights are [width, height, in_channels, out_channels]
             # tensorflow: weights are [height, width, in_channels, out_channels]
-            kernels = utils.get_variable(np.transpose(new_kernel, (1, 0, 2, 3)), name=name + "_w")
-            bias = utils.get_variable(new_bias.reshape(-1), name=name + "_b")
+            new_kernel = np.zeros(kernel_shape)
+            new_kernel_shape = np.transpose(new_kernel, (1, 0, 2, 3)).shape
+            print(f"new kernel shape: {new_kernel_shape}")
+            new_bias = np.zeros(bias_shape)
+            new_bias_shape = new_bias.reshape(-1).shape[0]
+            print(f"new bias shape: {new_bias_shape}")
 
+            ####################################################################
+            # ERROR POINT!
+            # np.zeros 로 처음 크기 잡아준 뒤,
+            # Initialize를 constant initialize 로 함.(get_variable 에서)
+
+            # kernels = utils.get_variable(np.transpose(new_kernel, (1, 0, 2, 3)), name=name + "_w")
+            # bias = utils.get_variable(new_bias.reshape(-1), name=name + "_b")
+            
+            kernels = utils.weight_variable(shape=new_kernel_shape, name=name + "_w" )
+            bias = utils.bias_variable(shape=[new_bias_shape], name=name + "_b")
+            ###################################################################
             current = utils.conv2d_basic(current, kernels, bias)
         elif kind == 'relu':
             current = tf.nn.relu(current, name=name)
@@ -70,7 +83,7 @@ def vgg_net(weights, image):
         elif kind == 'pool':
             current = utils.avg_pool_2x2(current)
         net[name] = current
-
+        print(f"VGG-19 {name} layer: {current.shape}")
     return net
 
 
@@ -155,7 +168,7 @@ def inference(image, keep_prob):
 
         annotation_pred = tf.argmax(conv_t3, dimension=3, name="prediction")
         
-    return tf.expand_dims(annotation_pred, dim=3), conv_t3, annotation_pred1, conv8
+    return tf.expand_dims(annotation_pred, dim=3), conv_t3
 
 
 def train(loss_val, var_list):
@@ -175,7 +188,7 @@ def main(argv=None):
     image = tf.placeholder(tf.float32, shape=[None, IMAGE_SIZE, IMAGE_SIZE, 4], name="input_image")
     annotation = tf.placeholder(tf.int32, shape=[None, IMAGE_SIZE, IMAGE_SIZE, 1], name="annotation")
 
-    pred_annotation, logits, conv8_annotation, conv8 = inference(image, keep_probability)
+    pred_annotation, logits = inference(image, keep_probability)
     tf.summary.image("input_image", image, max_outputs=2)
     tf.summary.image("ground_truth", tf.cast(annotation, tf.uint8), max_outputs=2)
     tf.summary.image("pred_annotation", tf.cast(pred_annotation, tf.uint8), max_outputs=2)
@@ -229,23 +242,10 @@ def main(argv=None):
             sess.run(train_op, feed_dict=feed_dict)
 
             if itr % 10 == 0:
-                train_loss, summary_str, pred, conv8_annot, conv8_raw = sess.run([loss, loss_summary, pred_annotation, conv8_annotation, conv8], feed_dict=feed_dict)
+                train_loss, summary_str, pred = sess.run([loss, loss_summary, pred_annotation], feed_dict=feed_dict)
                 print("Step: %d, Train_loss:%g" % (itr, train_loss))
-                print(f"train image shape: {train_images[0].shape}, max: {np.max(train_images[0])}, min: {np.min(train_images[0])}")
-                print(f"conv8_raw single class shape: {conv8_raw[:, :, :, 0].shape}")
-                print(f"img_1 conv8_raw background class max: {np.max(conv8_raw[0, :, :, 0])}, min: {np.min(conv8_raw[0, :, :, 0])}")
-                print(f"{conv8_raw[0, :, :, :]}")
-                print(f"img_1 conv8_raw tumor class max: {np.max(conv8_raw[0, :, :, 1])}, min: {np.min(conv8_raw[0, :, :, 1])}")
-                print(f"img_2 conv8_raw background class max: {np.max(conv8_raw[1, :, :, 0])}, min: {np.min(conv8_raw[1, :, :, 0])}")
-                print(f"{conv8_raw[1, :, :, :]}")
-                print(f"img_2 conv8_raw tumor class max: {np.max(conv8_raw[1, :, :, 1])}, min: {np.min(conv8_raw[1, :, :, 1])}")
-                print(f"conv8_layer shape: {conv8_annot.shape}, annotation:\n{conv8_annot[0, :, :]}")
-                # conv8_annot = np.squeeze(conv8_annot, axis=3) * 100
                 pred = np.squeeze(pred, axis=3) * 100
-                # utils.save_image(conv8_annot.astype(np.uint8), FLAGS.logs_dir, name="conv8_annot_" + str(5+itr))
                 utils.save_image(pred[0].astype(np.uint8), FLAGS.logs_dir, name="pred_" + str(5+itr))
-                # print(f"max of predicted annotation: {np.max(pred[0])}")
-                print(f"final_layer shape: {pred[0].shape}, annotation:\n{pred[0]}")
                 train_writer.add_summary(summary_str, itr)
 
             if itr % 500 == 0:
@@ -267,10 +267,43 @@ def main(argv=None):
 
         for itr in range(FLAGS.batch_size):
             utils.save_image(valid_images[itr].astype(np.uint8), FLAGS.logs_dir, name="inp_" + str(5+itr))
-            utils.save_image(valid_annotations[itr].astype(np.uint8), FLAGS.logs_dir, name="gt_" + str(5+itr))
-            utils.save_image(pred[itr].astype(np.uint8), FLAGS.logs_dir, name="pred_" + str(5+itr))
+            utils.save_image((valid_annotations[itr] * 100).astype(np.uint8), FLAGS.logs_dir, name="gt_" + str(5+itr))
+            utils.save_image((pred[itr] * 100).astype(np.uint8), FLAGS.logs_dir, name="pred_" + str(5+itr))
             print("Saved image: %d" % itr)
 
+    elif FLAGS.mode == "evaluate":
+        gt_tumor = 0
+        seg_tumor = 0
+        overlapped = 0
+        for i in range(len(valid_records)):
+            valid_images, valid_annotations = validation_dataset_reader.get_single_brain(i)
+            pred = sess.run(pred_annotation, feed_dict={image: valid_images, annotation: valid_annotations,
+                                                    keep_probability: 1.0})
+            valid_annotations = np.squeeze(valid_annotations, axis=3)
+            pred = np.squeeze(pred, axis=3)
+
+            for itr in range(valid_images.shape[0]):
+                gt = np.asarray(valid_annotations[itr]).astype(np.bool)
+                seg = np.asarray(pred[itr]).astype(np.bool)
+                pixels = len(gt) * len(gt)
+                
+                gt_tumor += gt.sum()
+                seg_tumor += seg.sum()
+                overlapped += np.logical_and(gt, seg).sum()
+                # numerator_tumor = 2. * np.logical_and(gt, seg).sum()
+                # denominator_tumor = gt.sum() + seg.sum()
+                # numerator_background = 2. * np.logical_not(np.logical_or(gt, seg)).sum()
+                # denominator_background = (pixels - gt.sum()) + (pixels - seg.sum())
+
+                # dice_background = numerator_background / denominator_background 
+                # if (denominator_tumor == 0):
+                #     dice_coeff = dice_background
+                # else:
+                #     dice_tumor = numerator_tumor / denominator_tumor
+                #     dice_coeff = (dice_tumor + dice_background) / 2
+                # utils.save_dice(FLAGS.logs_dir + '/dice.csv', i, itr + 1, dice_coeff)
+        dice = 2 * overlapped / (gt_tumor + seg_tumor)
+        print(f"DICE COEFFICIENT: {dice}")
 
 if __name__ == "__main__":
     tf.app.run()

@@ -88,6 +88,11 @@ class BatchDatset:
         random_brain = random.choice(list(range(len(self.files))))
         self.brain = random_brain
 
+    def get_single_brain(self, brain_index):
+        self.brain = brain_index
+        self._read_images()
+        return self.images, self.annotations
+
     def _regroup_mask_array(self, mask_array):
         regrouped = mask_array
         regrouped[regrouped == self.UNKNOWN_CLASS] = 0
@@ -121,7 +126,7 @@ class BatchDatset:
         # end = self.batch_offset
         start = random.choice(list(range(60, 100, 1)))
         end = start + batch_size
-        print(f"Input Batches: from {start} to {end}")
+        # print(f"Input Batches: from {start} to {end}")
         return self.images[start:end], self.annotations[start:end]
 
     def get_random_batch(self, batch_size):

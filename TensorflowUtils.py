@@ -58,10 +58,15 @@ def save_image(image, save_dir, name, mean=None):
         image = unprocess_image(image, mean)
     misc.imsave(os.path.join(save_dir, name + ".png"), image)
 
+def save_dice(dir_path, brain_index, z_index, dice):
+    # csv: brain_index, z_index, dice
+    with open(dir_path, 'a') as f:
+        f.write(f"{brain_index},{z_index},{dice}\n")
+
 
 def get_variable(weights, name):
     init = tf.constant_initializer(weights, dtype=tf.float32)
-    var = tf.get_variable(name=name, initializer=init,  shape=weights.shape)
+    var = tf.get_variable(name=name, initializer=init, shape=weights.shape)
     return var
 
 
